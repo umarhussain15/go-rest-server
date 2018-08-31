@@ -53,6 +53,21 @@ func (r Repository) addUser(user User) (User, error) {
 
 }
 
+func (r Repository) getUserByUsername(username string) (User, error) {
+	session, err := mgo.Dial(SERVER)
+	var user User
+	if err != nil {
+		log.Println("Failed to establish connection to Mongo server:", err)
+		return user, err
+	}
+	defer session.Close()
+
+	c := session.DB(DBNAME).C("users")
+	err = c.Find(bson.M{"username": username}).One(&user)
+
+	return user, err
+}
+
 // GetProducts returns the list of Products
 func (r Repository) GetProducts() Products {
 	session, err := mgo.Dial(SERVER)

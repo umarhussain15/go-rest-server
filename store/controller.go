@@ -87,19 +87,48 @@ func (c *Controller) registerUser(w http.ResponseWriter, req *http.Request) {
 func (c *Controller) loginUser(w http.ResponseWriter, req *http.Request) {
 	var user User
 	_ = json.NewDecoder(req.Body).Decode(&user)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": user.Username,
-		"password": user.Password,
-	})
 
-	log.Println("Username: " + user.Username)
-	//log.Println("Password: " + user.Password);
-
-	signedToken, err := token.SignedString([]byte(secret))
+	userDb, err := c.Repository.getUserByUsername(user.Username)
 	if err != nil {
-		fmt.Println(err)
+		log.Print("Error", err)
+
+		if err.Error() == "not found" {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(Response{Message: fmt.Sprintf("User with email %s not found", user.Username)})
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		return
 	}
-	json.NewEncoder(w).Encode(JwtToken{Token: signedToken})
+
+	userId := userDb.ID
+	if len(userId) != 0 {
+		err = bcrypt.CompareHashAndPassword([]byte(userDb.Password), []byte(user.Password))
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(Response{Message: "User email password is incorrect"})
+			return
+		} else {
+			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+				"username": user.Username,
+				"userId":   userId,
+			})
+			log.Println("Username: " + user.Username)
+			//log.Println("Password: " + user.Password);
+
+			signedToken, err := token.SignedString([]byte(secret))
+			if err != nil {
+				fmt.Println(err)
+			}
+			json.NewEncoder(w).Encode(JwtToken{Token: signedToken})
+			return
+		}
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(Response{Message: fmt.Sprintf("User with email '%s' not found", user.Username)})
+		return
+	}
+
 }
 
 // Index GET /
