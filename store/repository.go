@@ -13,24 +13,26 @@ import (
 //Repository ...
 type Repository struct{}
 
-// SERVER the DB server
-var SERVER = os.Getenv("MONGO_URL")
+// server the DB server
+var server = os.Getenv("MONGO_URL")
 
-//const SERVER = "mongodb://<db-username>:<db-user-password>@<host>:<port>/go-rest-server"
+//const server = "mongodb://<db-username>:<db-user-password>@<host>:<port>/go-rest-server"
 
-// DBNAME the name of the DB instance
-const DBNAME = "go-rest-server"
+// dbName the name of the DB instance
+const dbName = "go-rest-server"
 
-// COLLECTION is the name of the collection in DB
-const COLLECTION = "store"
+// collection is the name of the collection in DB
+const collection = "store"
+
+const userCollection = "users"
 
 var productId = 10
 
 /**
-Add user with hash password to db, after checking for user presence.
+Add user with hash password to db, after checking for username presence.
 */
 func (r Repository) addUser(user User) (User, error) {
-	session, err := mgo.Dial(SERVER)
+	session, err := mgo.Dial(server)
 
 	if err != nil {
 		log.Println("Failed to establish connection to Mongo server:", err)
@@ -38,7 +40,7 @@ func (r Repository) addUser(user User) (User, error) {
 	}
 	defer session.Close()
 
-	c := session.DB(DBNAME).C("users")
+	c := session.DB(dbName).C(userCollection)
 	count, err := c.Find(bson.M{"username": user.Username}).Count()
 	if err != nil {
 		return user, err
@@ -54,7 +56,7 @@ func (r Repository) addUser(user User) (User, error) {
 }
 
 func (r Repository) getUserByUsername(username string) (User, error) {
-	session, err := mgo.Dial(SERVER)
+	session, err := mgo.Dial(server)
 	var user User
 	if err != nil {
 		log.Println("Failed to establish connection to Mongo server:", err)
@@ -62,7 +64,7 @@ func (r Repository) getUserByUsername(username string) (User, error) {
 	}
 	defer session.Close()
 
-	c := session.DB(DBNAME).C("users")
+	c := session.DB(dbName).C("users")
 	err = c.Find(bson.M{"username": username}).One(&user)
 
 	return user, err
@@ -70,7 +72,7 @@ func (r Repository) getUserByUsername(username string) (User, error) {
 
 // GetProducts returns the list of Products
 func (r Repository) GetProducts() Products {
-	session, err := mgo.Dial(SERVER)
+	session, err := mgo.Dial(server)
 
 	if err != nil {
 		fmt.Println("Failed to establish connection to Mongo server:", err)
@@ -78,7 +80,7 @@ func (r Repository) GetProducts() Products {
 
 	defer session.Close()
 
-	c := session.DB(DBNAME).C(COLLECTION)
+	c := session.DB(dbName).C(collection)
 	results := Products{}
 
 	if err := c.Find(nil).All(&results); err != nil {
@@ -90,7 +92,7 @@ func (r Repository) GetProducts() Products {
 
 // GetProductById returns a unique Product
 func (r Repository) GetProductById(id int) Product {
-	session, err := mgo.Dial(SERVER)
+	session, err := mgo.Dial(server)
 
 	if err != nil {
 		fmt.Println("Failed to establish connection to Mongo server:", err)
@@ -98,7 +100,7 @@ func (r Repository) GetProductById(id int) Product {
 
 	defer session.Close()
 
-	c := session.DB(DBNAME).C(COLLECTION)
+	c := session.DB(dbName).C(collection)
 	var result Product
 
 	fmt.Println("ID in GetProductById", id)
@@ -111,7 +113,7 @@ func (r Repository) GetProductById(id int) Product {
 
 // GetProductsByString takes a search string as input and returns products
 func (r Repository) GetProductsByString(query string) Products {
-	session, err := mgo.Dial(SERVER)
+	session, err := mgo.Dial(server)
 
 	if err != nil {
 		fmt.Println("Failed to establish connection to Mongo server:", err)
@@ -119,7 +121,7 @@ func (r Repository) GetProductsByString(query string) Products {
 
 	defer session.Close()
 
-	c := session.DB(DBNAME).C(COLLECTION)
+	c := session.DB(dbName).C(collection)
 	result := Products{}
 
 	// Logic to create filter
@@ -141,12 +143,12 @@ func (r Repository) GetProductsByString(query string) Products {
 
 // AddProduct adds a Product in the DB
 func (r Repository) AddProduct(product Product) bool {
-	session, err := mgo.Dial(SERVER)
+	session, err := mgo.Dial(server)
 	defer session.Close()
 
 	productId += 1
 	product.ID = productId
-	session.DB(DBNAME).C(COLLECTION).Insert(product)
+	session.DB(dbName).C(collection).Insert(product)
 	if err != nil {
 		log.Fatal(err)
 		return false
@@ -159,10 +161,10 @@ func (r Repository) AddProduct(product Product) bool {
 
 // UpdateProduct updates a Product in the DB
 func (r Repository) UpdateProduct(product Product) bool {
-	session, err := mgo.Dial(SERVER)
+	session, err := mgo.Dial(server)
 	defer session.Close()
 
-	err = session.DB(DBNAME).C(COLLECTION).UpdateId(product.ID, product)
+	err = session.DB(dbName).C(collection).UpdateId(product.ID, product)
 
 	if err != nil {
 		log.Fatal(err)
@@ -176,11 +178,11 @@ func (r Repository) UpdateProduct(product Product) bool {
 
 // DeleteProduct deletes an Product
 func (r Repository) DeleteProduct(id int) string {
-	session, err := mgo.Dial(SERVER)
+	session, err := mgo.Dial(server)
 	defer session.Close()
 
 	// Remove product
-	if err = session.DB(DBNAME).C(COLLECTION).RemoveId(id); err != nil {
+	if err = session.DB(dbName).C(collection).RemoveId(id); err != nil {
 		log.Fatal(err)
 		return "INTERNAL ERR"
 	}

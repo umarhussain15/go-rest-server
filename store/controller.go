@@ -23,7 +23,7 @@ type Controller struct {
 
 var secret = os.Getenv("JWT_SECRET")
 
-var BCRYPT_SALT_ROUNDS = 12
+const bCryptSaltRounds = 12
 
 /* Middleware handler to handle all requests for authentication */
 func AuthenticationMiddleware(next http.HandlerFunc) http.HandlerFunc {
@@ -67,7 +67,7 @@ func (c *Controller) registerUser(w http.ResponseWriter, req *http.Request) {
 	var user User
 	json.NewDecoder(req.Body).Decode(&user)
 
-	bytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), BCRYPT_SALT_ROUNDS)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), bCryptSaltRounds)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

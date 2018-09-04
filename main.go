@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gorilla/handlers"
+	"github.com/joho/godotenv"
 	"go-rest-server/store"
 	"log"
 	"net/http"
@@ -9,7 +10,10 @@ import (
 )
 
 func main() {
-
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	port := os.Getenv("PORT")
 
 	if port == "" {
